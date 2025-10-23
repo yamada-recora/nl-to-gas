@@ -71,3 +71,4 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
 
     r = requests.post(GAS_WEBAPP_URL, headers={"Content-Type": "application/json"}, json=gas_payload.model_dump())
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:300]}
+
