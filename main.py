@@ -5,6 +5,9 @@ import requests
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
+import sys
+print(">>> Using openai from:", __import__("openai").__file__)
+
 # ---- OpenAI client は遅延生成（起動時に例外回避）----
 def get_openai_client():
     from openai import OpenAI  # importを関数内に
@@ -103,3 +106,4 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
