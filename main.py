@@ -10,11 +10,18 @@ print(">>> Using openai from:", __import__("openai").__file__)
 
 # ---- OpenAI client は遅延生成（起動時に例外回避）----
 def get_openai_client():
-    from openai import OpenAI  # importを関数内に
+    from openai import OpenAI
+    import httpx, os
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set")
-    return OpenAI(api_key=api_key)
+
+    # proxiesを完全無効化したhttpxクライアントを使う
+    transport = httpx.HTTPTransport(retries=3)
+    http_client = httpx.Client(transport=transport, proxies=None, follow_redirects=True)
+
+    return OpenAI(api_key=api_key, http_client=http_client)
+
 
 # ---- OpenAI のバージョンは失敗しても起動を止めない ----
 def get_openai_version() -> str:
@@ -119,3 +126,4 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
