@@ -92,7 +92,7 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         response_format={"type": "json_schema", "json_schema": schema},
     )
 
-    content = resp.choices[0].message.content[0].text
+    content = resp.choices[0].message.content
     try:
         data = json.loads(content)
     except json.JSONDecodeError:
@@ -135,6 +135,7 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
 
