@@ -56,7 +56,6 @@ def health():
 
 
 def nl_to_gas_payload(user_text: str) -> GasPayload:
-    from openai import OpenAI
     client = get_openai_client()
 
     schema = {
@@ -67,7 +66,11 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
             "properties": {
                 "intent": {"type": "string"},
                 "sheet": {"type": "string"},
-                "body": {"type": "object"}
+                "body": {
+                    "type": "object",
+                    "additionalProperties": False,  # ← これを追加！
+                    "properties": {}
+                }
             },
             "required": ["intent", "sheet", "body"]
         },
@@ -80,7 +83,6 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         "出力は {intent, sheet, body} のみ。"
     )
 
-    # ✅ 新API: chat.completions.create + response_format
     resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -90,7 +92,6 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         response_format={"type": "json_schema", "json_schema": schema},
     )
 
-    # 新仕様では JSON 出力は message.content[0].text に格納される
     content = resp.choices[0].message.content[0].text
     try:
         data = json.loads(content)
@@ -103,7 +104,6 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         sheet=data.get("sheet", "orders"),
         body=data.get("body", {}),
     )
-
 
 @app.post("/ingest")
 def ingest(payload: dict, x_api_key: str = Header(None)):
@@ -135,6 +135,7 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
 
