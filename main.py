@@ -105,6 +105,15 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         body=data.get("body", {}),
     )
 
+try:
+    print(">>> GAS_PAYLOAD (before send) =", json.dumps(gas_payload.model_dump(), ensure_ascii=False))
+    r = requests.post(
+        GAS_WEBAPP_URL,
+        headers={"Content-Type": "application/json"},
+        json=gas_payload.model_dump(),
+        timeout=20,
+    )
+
 @app.post("/ingest")
 def ingest(payload: dict, x_api_key: str = Header(None)):
     if (SERVER_API_KEY or "") != (x_api_key or ""):
@@ -135,6 +144,7 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
 
