@@ -56,7 +56,9 @@ def health():
 
 
 def nl_to_gas_payload(user_text: str) -> GasPayload:
+    from openai import OpenAI
     client = get_openai_client()
+
     schema = {
         "name": "GasPayload",
         "schema": {
@@ -71,20 +73,27 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         },
         "strict": True
     }
+
     system = (
         "あなたは自然文をGoogleスプレッドシートへの書き込み用JSONに変換するアシスタントです。"
         "sheetが無ければ 'orders'。数値は数値、日付はYYYY-MM-DD。"
         "出力は {intent, sheet, body} のみ。"
     )
-    # Structured Outputs
-    resp = client.responses.create(
+
+    # ✅ 新API: chat.completions.create + response_format
+    resp = client.chat.completions.create(
         model="gpt-4o-mini",
-        input=[{"role": "system", "content": system},
-               {"role": "user", "content": user_text}],
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_text},
+        ],
         response_format={"type": "json_schema", "json_schema": schema},
     )
+
+    # 新仕様では JSON 出力は message.content[0].text に格納される
+    content = resp.choices[0].message.content[0].text
     try:
-        data = json.loads(resp.output_text)
+        data = json.loads(content)
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="LLM output JSON parse error")
 
@@ -94,6 +103,7 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         sheet=data.get("sheet", "orders"),
         body=data.get("body", {}),
     )
+
 
 @app.post("/ingest")
 def ingest(payload: dict, x_api_key: str = Header(None)):
@@ -125,5 +135,6 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
