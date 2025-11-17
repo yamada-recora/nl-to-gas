@@ -98,7 +98,12 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
     if not user_text:
         raise HTTPException(status_code=400, detail="user_text required")
 
-    gas_payload = nl_to_gas_payload(user_text)
+    try:
+        gas_payload = nl_to_gas_payload(user_text)
+    except Exception as e:
+        import traceback
+        print(">>> ERROR in nl_to_gas_payload:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"nl_to_gas_payload error: {e}")
 
     if not GAS_WEBAPP_URL:
         raise HTTPException(status_code=500, detail="GAS_WEBAPP_URL is not set")
@@ -114,5 +119,3 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
-
-
