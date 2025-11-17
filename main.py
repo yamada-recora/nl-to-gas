@@ -99,7 +99,7 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         raise HTTPException(status_code=502, detail="LLM output JSON parse error")
 
     return GasPayload(
-        token=SHARED_TOKEN or "",
+        token=SHARED_TOKEN,
         intent=data.get("intent", "generic_post"),
         sheet=data.get("sheet", "orders"),
         body=data.get("body", {}),
@@ -135,6 +135,7 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
 
