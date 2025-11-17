@@ -99,10 +99,10 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         raise HTTPException(status_code=502, detail="LLM output JSON parse error")
 
     return GasPayload(
-        "token": "recora-secret-0324",
-        "intent": "create_order",
-        "sheet": "orders",
-        "body": {"message": "今日の売上 50000円"}
+        token=SHARED_TOKEN or "",
+        intent=data.get("intent", "generic_post"),
+        sheet=data.get("sheet", "orders"),
+        body=data.get("body", {}),
     )
 
 @app.post("/ingest")
