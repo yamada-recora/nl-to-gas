@@ -16,12 +16,11 @@ def get_openai_client():
     if not api_key:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not set")
 
-    # proxiesを完全無効化したhttpxクライアントを使う
+    # proxies=None は削除
     transport = httpx.HTTPTransport(retries=3)
-    http_client = httpx.Client(transport=transport, proxies=None, follow_redirects=True)
+    http_client = httpx.Client(transport=transport, follow_redirects=True)
 
     return OpenAI(api_key=api_key, http_client=http_client)
-
 
 # ---- OpenAI のバージョンは失敗しても起動を止めない ----
 def get_openai_version() -> str:
@@ -126,4 +125,5 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
