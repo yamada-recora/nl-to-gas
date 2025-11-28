@@ -56,6 +56,7 @@ def health():
 
 
 def nl_to_gas_payload(user_text: str) -> GasPayload:
+    from datetime import datetime
     client = get_openai_client()
 
     schema = {
@@ -76,7 +77,7 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
                         "内容": {"type": "string"},
                         "期限": {"type": "string"}
                     },
-                    "required": ["固有ID","追加日", "担当", "内容", "期限"]
+                    "required": ["固有ID", "追加日", "担当", "内容", "期限"]
                 }
             },
             "required": ["intent", "sheet", "body"]
@@ -84,14 +85,18 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
         "strict": True
     }
 
+    # 今日の日付（自動）
+    today = datetime.now().strftime("%Y/%m/%d")
+
     system = (
         "あなたは自然文をGoogleスプレッドシート task-list への書き込み用JSONに変換するアシスタントです。"
         "必ず intent, sheet, body の3要素を返します。"
         "sheet は常に 'task-list'。"
         "body には以下のキーを含めてください：固有ID, 追加日, 担当, 内容, 期限。"
-        "固有IDは空文字列。追加日は今日の日付（yyyy/mm/dd）。"
-        "担当は文章から名前を推定。なければ '誰が担当ですか？' と尋ねる。"
-        "内容は指示文を要約。期限は文章から日付を抽出。なければ '期限はいつですか？' と尋ねる。"
+        f"固有IDは空文字列。追加日は必ず {today}。"
+        "担当は文章から名前を推定。なければユーザーに『誰が担当ですか？』と尋ねる。"
+        "内容はユーザーの指示を簡潔に要約。"
+        "期限は文章に含まれていない場合、必ずユーザーに『期限はいつですか？』と尋ねる。"
     )
 
     resp = client.chat.completions.create(
@@ -109,12 +114,17 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
     except json.JSONDecodeError:
         raise HTTPException(status_code=502, detail="LLM output JSON parse error")
 
+    # 追加日はサーバー時刻で上書き
+    if "body" in data:
+        data["body"]["追加日"] = today
+
     return GasPayload(
         token="recora-secret-0324",
         intent=data.get("intent", "write"),
         sheet=data.get("sheet", "task-list"),
         body=data.get("body", {}),
     )
+
 
 
 @app.post("/ingest")
@@ -150,6 +160,7 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
 
