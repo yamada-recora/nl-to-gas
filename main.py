@@ -76,7 +76,7 @@ def nl_to_gas_payload(user_text: str) -> GasPayload:
                         "内容": {"type": "string"},
                         "期限": {"type": "string"}
                     },
-                    "required": ["追加日", "担当", "内容", "期限"]
+                    "required": ["固有ID","追加日", "担当", "内容", "期限"]
                 }
             },
             "required": ["intent", "sheet", "body"]
@@ -150,6 +150,7 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
         raise HTTPException(status_code=502, detail=f"GAS request failed: {e}")
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
+
 
 
 
