@@ -162,33 +162,17 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
 
 @app.get("/tasks")
-def get_tasks():
-    """
-    task-list の一覧を取得するエンドポイント
-    """
-    import requests
-
+def get_tasks(user: str = None):
     if not GAS_WEBAPP_URL:
         raise HTTPException(status_code=500, detail="GAS_WEBAPP_URL is not set")
 
+    params = {"sheet": "task-list"}
+    if user:
+        params["user"] = user
+
     try:
-        # GASの doGet にアクセスして一覧を取得
-        r = requests.get(f"{GAS_WEBAPP_URL}?sheet=task-list", timeout=20)
+        r = requests.get(GAS_WEBAPP_URL, params=params, timeout=20)
         r.raise_for_status()
-        data = r.json()
+        return r.json()
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"GAS fetch failed: {e}")
-
-    # GASからのレスポンスをそのまま返す
-    return data
-
-
-
-
-
-
-
-
-
-
-
