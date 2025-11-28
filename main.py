@@ -161,7 +161,16 @@ def ingest(payload: dict, x_api_key: str = Header(None)):
 
     return {"ok": r.ok, "status": r.status_code, "text": r.text[:1000]}
 
+@app.get("/tasks")
+def get_tasks():
+    if not GAS_WEBAPP_URL:
+        raise HTTPException(status_code=500, detail="GAS_WEBAPP_URL is not set")
 
+    r = requests.get(f"{GAS_WEBAPP_URL}?sheet=task-list", timeout=20)
+    if not r.ok:
+        raise HTTPException(status_code=502, detail="GAS returned error")
+
+    return r.json()
 
 
 
