@@ -173,6 +173,18 @@ def get_tasks(user: str = None):
     try:
         r = requests.get(GAS_WEBAPP_URL, params=params, timeout=20)
         r.raise_for_status()
-        return r.json()
-    except Exception as e:
+        data = r.json()
+
+        # 🟡 担当者指定なしの確認メッセージに対応
+        if not data.get("ok") and "誰のタスクを表示しますか" in data.get("message", ""):
+            # ChatGPT などの呼び出し元にわかりやすく返す
+            return {
+                "ok": False,
+                "needs_user": True,
+                "message": data["message"]
+            }
+
+        return data
+
+    except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=502, detail=f"GAS fetch failed: {e}")
