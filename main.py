@@ -181,4 +181,37 @@ def ingest(payload: dict, x_api_key: str = Header(None), x_user_id: str = Header
 # ==== GAS送信 ====
 def send_to_gas(gas_payload: GasPayload):
     if not GAS_WEBAPP_URL:
-        raise HTTPException(status_code=500, detail="GAS_WEBAPP_URL is_
+        raise HTTPException(status_code=500, detail="GAS_WEBAPP_URL is not set")
+
+    try:
+        print(">>> GAS_PAYLOAD (send) =", json.dumps(gas_payload.model_dump(), ensure_ascii=False))
+        r = requests.post(
+            GAS_WEBAPP_URL,
+            headers={"Content-Type": "application/json"},
+            json=gas_payload.model_dump(),
+            timeout=20,
+        )
+        if not r.ok:
+            raise HTTPException(status_code=502, detail=f"GAS error: {r.text[:200]}")
+        return {"ok": True, "message": "タスクを登録しました ✅", "status": r.status_code}
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"GAS通信失敗: {e}")
+
+
+# ==== タスク取得 ====
+@app.get("/tasks")
+def get_tasks(user: str = None):
+    if not GAS_WEBAPP_URL:
+        raise HTTPException(status_code=500, detail="GAS_WEBAPP_URL is not set")
+
+    params = {"sheet": "task-list"}
+    if user:
+        params["user"] = user
+
+    try:
+        r = requests.get(GAS_WEBAPP_URL, params=params, timeout=20)
+        r.raise_for_status()
+        data = r.json()
+        return data
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"GAS fetch failed: {e}")
